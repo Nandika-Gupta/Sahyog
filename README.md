@@ -1,20 +1,107 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Sahyog
 
-# Run and deploy your AI Studio app
+Sahyog is a full-stack collaborative task management platform built for student teams and small project groups to manage workspaces, organize tasks, and collaborate in real time.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/924d1ac8-72bd-4395-83a3-ea336f70fe05
+## Features
 
-## Run Locally
+- JWT-based authentication
+- Workspace and board management
+- Drag-and-drop Kanban workflow
+- Real-time task updates using Socket.IO
+- Optimistic UI updates
+- Responsive dark-themed interface
+- Multi-user collaboration
 
-**Prerequisites:**  Node.js
+---
 
+## Tech Stack
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Frontend
+- React 18
+- Vite
+- TypeScript
+- Tailwind CSS
+- Zustand
+- TanStack Query
+- Framer Motion
+- Socket.io-client
+- @hello-pangea/dnd
+
+### Backend
+- Node.js
+- Express.js
+- Prisma 5
+- Socket.IO
+- Zod
+- JWT Authentication
+- bcrypt
+
+### Database
+- SQLite
+
+---
+
+## Architecture
+
+```text
+Frontend (React)
+      ↓
+Express API + Socket.IO
+      ↓
+Prisma ORM
+      ↓
+SQLite Database
+```
+
+---
+
+## Folder Structure
+
+```text
+src/
+├── components/
+├── pages/
+├── hooks/
+├── store/
+├── services/
+├── utils/
+└── types/
+
+prisma/
+└── schema.prisma
+
+server.ts
+```
+
+---
+
+## Setup
+
+### Install dependencies
+
+```bash
+npm install
+```
+
+### Configure environment variables
+
+```env
+JWT_SECRET=
+CLIENT_URL=
+```
+
+### Run database migrations
+
+```bash
+npx prisma migrate dev
+```
+
+### Start development server
+
+```bash
+npm run dev
+```
+
+---
