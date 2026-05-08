@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
   const [newWorkspaceName, setNewWorkspaceName] = useState("");
   const [newBoardTitle, setNewBoardTitle] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const { data: workspaces, isLoading } = useQuery({
     queryKey: ["workspaces"],
@@ -27,7 +28,9 @@ export default function DashboardPage() {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       setIsModalOpen(false);
       setNewWorkspaceName("");
-    }
+      setError(null);
+    },
+    onError: (err: Error) => setError(err.message)
   });
 
   const handleCreateBoard = useMutation({
@@ -41,7 +44,9 @@ export default function DashboardPage() {
       setIsBoardModalOpen(false);
       setNewBoardTitle("");
       setActiveWorkspaceId(null);
-    }
+      setError(null);
+    },
+    onError: (err: Error) => setError(err.message)
   });
 
   if (isLoading) return <div>Loading...</div>;
@@ -146,6 +151,7 @@ export default function DashboardPage() {
               className="relative w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl"
             >
               <h2 className="text-2xl font-bold mb-6">Create Workspace</h2>
+              {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Workspace Name</label>
@@ -192,6 +198,7 @@ export default function DashboardPage() {
               className="relative w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl"
             >
               <h2 className="text-2xl font-bold mb-6">Create New Board</h2>
+              {error && <p className="text-red-400 text-sm mb-4">{error}</p>}
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Board Title</label>

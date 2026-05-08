@@ -20,6 +20,7 @@ router.get("/", authenticateToken, async (req: AuthRequest, res) => {
         },
       },
       include: {
+        boards: true,
         members: {
           include: {
             user: {
