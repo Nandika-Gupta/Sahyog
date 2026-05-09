@@ -107,36 +107,47 @@ export default function BoardPage() {
   if (error) return <div className="p-8 text-center text-red-400">Board not found</div>;
 
   return (
-    <div className="h-[calc(100vh-12rem)] flex flex-col gap-6">
-      <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col gap-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">{board.title}</h1>
-          <p className="text-sm text-slate-400">Manage your tasks and collaborate with your team</p>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-black text-white">{board.title}</h1>
+            <div className="px-2 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[10px] font-black text-indigo-400 uppercase tracking-widest">
+              Live
+            </div>
+          </div>
+          <p className="text-slate-400 font-medium">Sprint 12 • Active Collaborators: 4</p>
         </div>
-        <div className="flex -space-x-2">
-            {[1,2,3].map(i => (
-                <div key={i} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-950 flex items-center justify-center text-xs font-bold text-indigo-400">
-                    U
-                </div>
-            ))}
-            <button className="w-8 h-8 rounded-full bg-indigo-600 border-2 border-slate-950 flex items-center justify-center text-white hover:bg-indigo-500 transition-colors">
-                <Plus className="w-4 h-4" />
-            </button>
+        <div className="flex items-center gap-4">
+          <div className="flex -space-x-3">
+              {[1,2,3].map(i => (
+                  <div key={i} className="w-10 h-10 rounded-2xl bg-slate-800 border-2 border-slate-950 flex items-center justify-center overflow-hidden">
+                      <img src={`https://i.pravatar.cc/100?u=${i}`} alt="user" className="w-full h-full object-cover" />
+                  </div>
+              ))}
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 border-2 border-slate-950 flex items-center justify-center text-xs font-black text-white">
+                  +1
+              </div>
+          </div>
+          <button className="h-12 px-6 bg-white text-black font-black rounded-2xl hover:bg-slate-200 transition-all shadow-xl shadow-white/5 active:scale-95 flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Share
+          </button>
         </div>
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex-1 flex gap-6 overflow-x-auto pb-4 custom-scrollbar">
+        <div className="flex-1 flex gap-6 overflow-x-auto pb-6 custom-scrollbar min-h-0">
           {board.columns.map((column: any) => (
-            <div key={column.id} className="flex-shrink-0 w-80 flex flex-col gap-4">
-              <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-200 text-sm">{column.title}</h3>
-                  <span className="bg-slate-800 text-slate-400 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            <div key={column.id} className="flex-shrink-0 w-80 flex flex-col gap-6">
+              <div className="flex items-center justify-between px-3">
+                <div className="flex items-center gap-3">
+                  <h3 className="font-black text-white text-xs uppercase tracking-widest">{column.title}</h3>
+                  <span className="w-5 h-5 bg-slate-900 border border-slate-800 text-slate-500 text-[10px] flex items-center justify-center rounded-lg font-black">
                     {column.tasks.length}
                   </span>
                 </div>
-                <button className="text-slate-500 hover:text-slate-300">
+                <button className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-white transition-colors rounded-lg hover:bg-slate-900">
                   <MoreVertical className="w-4 h-4" />
                 </button>
               </div>
@@ -147,8 +158,8 @@ export default function BoardPage() {
                     {...provided.droppableProps}
                     ref={provided.innerRef}
                     className={cn(
-                      "flex-1 flex flex-col gap-3 p-2 rounded-xl border border-dashed transition-colors duration-200",
-                      snapshot.isDraggingOver ? "bg-slate-900/50 border-indigo-500/50" : "bg-transparent border-transparent"
+                      "flex-1 flex flex-col gap-4 p-3 rounded-[32px] border-2 border-transparent transition-all duration-300 min-h-[200px]",
+                      snapshot.isDraggingOver ? "bg-indigo-500/5 border-indigo-500/20" : "bg-slate-900/30"
                     )}
                   >
                     {column.tasks.map((task: any, index: number) => (
@@ -159,40 +170,43 @@ export default function BoardPage() {
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
                             className={cn(
-                              "bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-lg cursor-grab active:cursor-grabbing hover:border-slate-700 transition-all",
-                              snapshot.isDragging ? "shadow-2xl shadow-indigo-500/20 rotate-1 border-indigo-500/50" : ""
+                              "bg-slate-900/80 backdrop-blur-sm border border-white/[0.05] p-5 rounded-3xl shadow-xl cursor-grab active:cursor-grabbing hover:border-indigo-500/40 transition-all group",
+                              snapshot.isDragging ? "shadow-2xl shadow-indigo-500/30 rotate-2 border-indigo-500 bg-slate-900 scale-105 z-50" : ""
                             )}
                           >
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="flex justify-between items-start mb-4">
                                 <span className={cn(
-                                    "px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase",
+                                    "px-2.5 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase",
                                     task.priority === "HIGH" ? "bg-red-500/10 text-red-500" :
                                     task.priority === "MEDIUM" ? "bg-yellow-500/10 text-yellow-500" :
                                     "bg-emerald-500/10 text-emerald-500"
                                 )}>
                                     {task.priority}
                                 </span>
+                                <div className="w-7 h-7 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-[9px] font-black text-indigo-400 group-hover:scale-110 transition-transform">
+                                    {task.assignee?.name?.[0].toUpperCase() || "?"}
+                                </div>
                             </div>
-                            <h4 className="font-semibold text-slate-100 text-sm mb-2">{task.title}</h4>
-                            <p className="text-xs text-slate-400 line-clamp-2 mb-4 leading-relaxed">
-                                {task.description || "No description provided."}
+                            <h4 className="font-black text-white text-sm mb-2 group-hover:text-indigo-400 transition-colors leading-tight">{task.title}</h4>
+                            <p className="text-xs text-slate-500 line-clamp-2 mb-5 leading-relaxed font-medium">
+                                {task.description || "No specific details provided for this task yet."}
                             </p>
                             
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-800/50">
-                                <div className="flex items-center gap-3 text-slate-500">
-                                    <div className="flex items-center gap-1">
-                                        <MessageSquare className="w-3 h-3" />
-                                        <span className="text-[10px]">2</span>
+                            <div className="flex items-center justify-between pt-4 border-t border-white/[0.03]">
+                                <div className="flex items-center gap-4 text-slate-600">
+                                    <div className="flex items-center gap-1.5">
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        <span className="text-[10px] font-bold tracking-tight">2</span>
                                     </div>
                                     {task.dueDate && (
-                                        <div className="flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            <span className="text-[10px]">{new Date(task.dueDate).toLocaleDateString()}</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-bold tracking-tight">Nov 24</span>
                                         </div>
                                     )}
                                 </div>
-                                <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-indigo-400 border border-slate-700">
-                                    {task.assignee?.name?.[0].toUpperCase() || "?"}
+                                <div className="flex -space-x-1.5">
+                                   <div className="w-5 h-5 rounded-full bg-indigo-500 border border-slate-900" />
                                 </div>
                             </div>
                           </div>
@@ -206,10 +220,10 @@ export default function BoardPage() {
                         setSelectedColumnId(column.id);
                         setIsTaskModalOpen(true);
                       }}
-                      className="group flex items-center gap-2 px-3 py-2 rounded-xl text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/5 transition-all text-sm mt-1"
+                      className="group flex items-center gap-3 px-5 py-4 rounded-2xl text-slate-500 hover:text-white hover:bg-white/5 border border-dashed border-slate-800 hover:border-white/20 transition-all text-xs font-black uppercase tracking-widest"
                     >
-                      <Plus className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                      <span>Add Task</span>
+                      <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
+                      <span>New Task</span>
                     </button>
                   </div>
                 )}

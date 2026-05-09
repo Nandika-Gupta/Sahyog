@@ -4,7 +4,9 @@ import LoginPage from "./pages/LoginPage.tsx";
 import SignupPage from "./pages/SignupPage.tsx";
 import DashboardPage from "./pages/DashboardPage.tsx";
 import BoardPage from "./pages/BoardPage.tsx";
-import Navbar from "./components/Navbar.tsx";
+import LandingPage from "./pages/LandingPage.tsx";
+import Header from "./components/Header.tsx";
+import Sidebar from "./components/Sidebar.tsx";
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((state) => state.token);
@@ -16,30 +18,30 @@ export default function App() {
   const token = useAuthStore((state) => state.token);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans">
-      {token && <Navbar />}
-      <main className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-slate-950 text-slate-50 font-sans selection:bg-indigo-500/30">
+      {!token ? (
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/board/:boardId"
-            element={
-              <ProtectedRoute>
-                <BoardPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </main>
+      ) : (
+        <div className="flex min-h-screen">
+          <Sidebar />
+          <div className="flex-1 ml-64 min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1 p-8">
+              <Routes>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/board/:boardId" element={<BoardPage />} />
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </main>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
