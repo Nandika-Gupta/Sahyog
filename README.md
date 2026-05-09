@@ -1,20 +1,82 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Sahyog
 
-# Run and deploy your AI Studio app
+Sahyog is a real-time collaborative task management platform designed for teams to organize workspaces, manage tasks, and collaborate efficiently.
 
-This contains everything you need to run your app locally.
+The platform provides Kanban-style workflow management with drag-and-drop task organization, secure authentication, real-time synchronization, and responsive cross-device collaboration.
 
-View your app in AI Studio: https://ai.studio/apps/924d1ac8-72bd-4395-83a3-ea336f70fe05
+## Features
 
-## Run Locally
+### Authentication
+- JWT-based authentication
+- Google OAuth login
+- Protected routes and session persistence
 
-**Prerequisites:**  Node.js
+### Workspace Management
+- Create and manage multiple workspaces
+- Organize projects inside dedicated team environments
 
+### Kanban Boards
+- Drag-and-drop task movement
+- Task organization across Todo, In Progress, and Done columns
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+### Task Management
+- Create, edit, and delete tasks
+- Assign tasks to workspace members
+- Add task descriptions and statuses
+
+### Real-Time Collaboration
+- Instant synchronization across users using Socket.io
+
+### Responsive UI
+- Responsive interface optimized for desktop and mobile devices
+
+## Tech Stack
+
+### Frontend
+- React 19
+- TypeScript
+- Tailwind CSS
+- Framer Motion
+- Zustand
+- TanStack Query
+
+### Backend
+- Node.js
+- Express.js
+- Prisma ORM
+- SQLite
+- Socket.io
+
+### Authentication & Validation
+- JWT Authentication
+- Google OAuth
+- Bcrypt.js
+- Zod
+
+### Additional Libraries
+- @hello-pangea/dnd
+- Lucide React
+
+## Architecture Overview
+
+Client (React + TypeScript)
+        ↓
+Node.js + Express API
+        ↓
+Prisma ORM
+        ↓
+SQLite Database
+        ↓
+Socket.io Real-Time Sync
+
+## Folder Structure
+
+src/
+├── components/     # Reusable UI components
+├── pages/          # Workspace and board pages
+├── hooks/          # Custom React hooks
+├── store/          # Zustand state management
+├── lib/            # Utility functions and configs
+├── types/          # Shared TypeScript interfaces
+├── App.tsx         # Root application logic
+└── main.tsx        # Application entry point
