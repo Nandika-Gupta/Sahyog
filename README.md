@@ -8,7 +8,6 @@ The platform provides Kanban-style workflow management with drag-and-drop task o
 
 ### Authentication
 - JWT-based authentication
-- Google OAuth login
 - Protected routes and session persistence
 
 ### Workspace Management
@@ -49,7 +48,6 @@ The platform provides Kanban-style workflow management with drag-and-drop task o
 
 ### Authentication & Validation
 - JWT Authentication
-- Google OAuth
 - Bcrypt.js
 - Zod
 
