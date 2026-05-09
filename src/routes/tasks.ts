@@ -11,6 +11,17 @@ router.get("/:id", authenticateToken, async (req: AuthRequest, res) => {
     const board = await prisma.board.findUnique({
       where: { id: req.params.id },
       include: {
+        workspace: {
+          include: {
+            members: {
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true }
+                }
+              }
+            }
+          }
+        },
         columns: {
           orderBy: { order: "asc" },
           include: {
@@ -110,6 +121,17 @@ router.patch("/tasks/:id/move", authenticateToken, async (req: AuthRequest, res)
       return res.status(400).json({ error: error.issues[0].message });
     }
     res.status(400).json({ error: error.message || "Failed to move task" });
+  }
+});
+
+router.delete("/tasks/:id", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    await prisma.task.delete({
+      where: { id: req.params.id },
+    });
+    res.status(204).end();
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete task" });
   }
 });
 

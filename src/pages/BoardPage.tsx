@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetcher } from "../services/api.ts";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { io, Socket } from "socket.io-client";
-import { Plus, MoreVertical, Clock, User, MessageSquare, AlertCircle } from "lucide-react";
+import { Plus, MoreVertical, Clock, User, MessageSquare, AlertCircle, Users } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -103,10 +103,50 @@ export default function BoardPage() {
     });
   };
 
-  if (isLoading) return <div className="p-8 text-center text-slate-400">Loading board...</div>;
-  if (error) return <div className="p-8 text-center text-red-400">Board not found</div>;
+  const [isColumnModalOpen, setIsColumnModalOpen] = useState(false);
+  const [newColumnTitle, setNewColumnTitle] = useState("");
 
-  return (
+  const createColumnMutation = useMutation({
+    mutationFn: (title: string) => fetcher(`/workspaces/${board?.workspaceId}/boards/${boardId}/columns`, {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setIsColumnModalOpen(false);
+      setNewColumnTitle("");
+    }
+  });
+
+  const deleteColumnMutation = useMutation({
+    mutationFn: (columnId: string) => fetcher(`/workspaces/${board?.workspaceId}/boards/${boardId}/columns/${columnId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+    }
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: (taskId: string) => fetcher(`/tasks/tasks/${taskId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+    }
+  });
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+    </div>
+  );
+  if (error) return <div className="p-8 text-center text-red-400">Board not found or you don't have access.</div>;
+
+  const handleCreateColumn = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newColumnTitle.trim()) {
+      createColumnMutation.mutate(newColumnTitle.trim());
+    }
+  };
+
+return (
     <div className="h-full flex flex-col gap-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -116,19 +156,28 @@ export default function BoardPage() {
               Live
             </div>
           </div>
-          <p className="text-slate-400 font-medium">Sprint 12 • Active Collaborators: 4</p>
+          <p className="text-slate-400 font-medium">Workspace: {board.workspace?.name} • Columns: {board.columns.length}</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex -space-x-3">
-              {[1,2,3].map(i => (
-                  <div key={i} className="w-10 h-10 rounded-2xl bg-slate-800 border-2 border-slate-950 flex items-center justify-center overflow-hidden">
-                      <img src={`https://i.pravatar.cc/100?u=${i}`} alt="user" className="w-full h-full object-cover" />
+              {board.workspace?.members?.slice(0, 3).map((m: any) => (
+                  <div key={m.userId} className="w-10 h-10 rounded-2xl bg-slate-800 border-2 border-slate-950 flex items-center justify-center overflow-hidden" title={m.user.name}>
+                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user.name}`} alt="user" className="w-full h-full object-cover" />
                   </div>
               ))}
-              <div className="w-10 h-10 rounded-2xl bg-indigo-600 border-2 border-slate-950 flex items-center justify-center text-xs font-black text-white">
-                  +1
-              </div>
+              {board.workspace?.members?.length > 3 && (
+                <div className="w-10 h-10 rounded-2xl bg-indigo-600 border-2 border-slate-950 flex items-center justify-center text-xs font-black text-white">
+                    +{board.workspace.members.length - 3}
+                </div>
+              )}
           </div>
+          <button 
+            onClick={() => setIsColumnModalOpen(true)}
+            className="h-12 px-6 bg-slate-900 text-white font-black rounded-2xl hover:bg-slate-800 transition-all border border-slate-800 active:scale-95 flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Add Column
+          </button>
           <button className="h-12 px-6 bg-white text-black font-black rounded-2xl hover:bg-slate-200 transition-all shadow-xl shadow-white/5 active:scale-95 flex items-center gap-2">
             <Users className="w-4 h-4" />
             Share
@@ -147,7 +196,12 @@ export default function BoardPage() {
                     {column.tasks.length}
                   </span>
                 </div>
-                <button className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-white transition-colors rounded-lg hover:bg-slate-900">
+                <button 
+                  onClick={() => {
+                    if (confirm("Delete this column and all its tasks?")) deleteColumnMutation.mutate(column.id);
+                  }}
+                  className="w-8 h-8 flex items-center justify-center text-slate-500 hover:text-red-400 transition-colors rounded-lg hover:bg-slate-900"
+                >
                   <MoreVertical className="w-4 h-4" />
                 </button>
               </div>
@@ -186,6 +240,15 @@ export default function BoardPage() {
                                 <div className="w-7 h-7 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-[9px] font-black text-indigo-400 group-hover:scale-110 transition-transform">
                                     {task.assignee?.name?.[0].toUpperCase() || "?"}
                                 </div>
+                                <button 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    if (confirm("Delete this task?")) deleteTaskMutation.mutate(task.id);
+                                  }}
+                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-all"
+                                >
+                                  <AlertCircle className="w-4 h-4" />
+                                </button>
                             </div>
                             <h4 className="font-black text-white text-sm mb-2 group-hover:text-indigo-400 transition-colors leading-tight">{task.title}</h4>
                             <p className="text-xs text-slate-500 line-clamp-2 mb-5 leading-relaxed font-medium">
@@ -248,6 +311,58 @@ export default function BoardPage() {
                 onClose={() => setIsTaskModalOpen(false)} 
                 boardId={boardId!}
             />
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isColumnModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              onClick={() => setIsColumnModalOpen(false)}
+            />
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="relative w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl"
+            >
+                <h2 className="text-2xl font-bold mb-6">Add New Column</h2>
+                <form onSubmit={handleCreateColumn} className="space-y-6">
+                    <div>
+                        <label className="block text-sm font-bold text-slate-300 mb-2 uppercase tracking-widest">Column Title</label>
+                        <input
+                            autoFocus
+                            type="text"
+                            value={newColumnTitle}
+                            onChange={(e) => setNewColumnTitle(e.target.value)}
+                            className="w-full h-14 bg-slate-950 border border-slate-800 rounded-xl px-5 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-bold placeholder:text-slate-700"
+                            placeholder="e.g. Backlog, Testing"
+                            required
+                        />
+                    </div>
+                    <div className="flex gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setIsColumnModalOpen(false)}
+                            className="flex-1 h-14 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={!newColumnTitle || createColumnMutation.isPending}
+                            className="flex-1 h-14 bg-white text-black hover:bg-slate-200 disabled:opacity-50 font-black rounded-xl transition-all shadow-xl shadow-white/5"
+                        >
+                            {createColumnMutation.isPending ? "Creating..." : "Create Column"}
+                        </button>
+                    </div>
+                </form>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>

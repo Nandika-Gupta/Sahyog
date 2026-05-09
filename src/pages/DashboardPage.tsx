@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetcher } from "../services/api.ts";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plus, Users, Layout, MoreVertical, Settings } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuthStore } from "../stores/auth.ts";
 
 export default function DashboardPage() {
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBoardModalOpen, setIsBoardModalOpen] = useState(false);
@@ -41,12 +42,13 @@ export default function DashboardPage() {
         method: "POST",
         body: JSON.stringify({ title }),
       }),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["workspaces"] });
       setIsBoardModalOpen(false);
       setNewBoardTitle("");
       setActiveWorkspaceId(null);
       setError(null);
+      navigate(`/board/${data.id}`);
     },
     onError: (err: Error) => setError(err.message)
   });

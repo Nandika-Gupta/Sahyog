@@ -104,4 +104,47 @@ router.post("/:id/boards", authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+router.post("/:workspaceId/boards/:boardId/columns", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { title } = z.object({ title: z.string() }).parse(req.body);
+    const { boardId } = req.params;
+
+    const lastColumn = await prisma.column.findFirst({
+      where: { boardId },
+      orderBy: { order: "desc" },
+    });
+
+    const column = await prisma.column.create({
+      data: {
+        title,
+        boardId,
+        order: lastColumn ? lastColumn.order + 1 : 0,
+      },
+    });
+
+    res.status(201).json(column);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.issues[0].message });
+    }
+    res.status(400).json({ error: error.message || "Failed to create column" });
+  }
+});
+
+router.delete("/:workspaceId/boards/:boardId/columns/:columnId", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { columnId } = req.params;
+    
+    // Delete all tasks in column first
+    await prisma.task.deleteMany({ where: { columnId } });
+    
+    await prisma.column.delete({
+      where: { id: columnId },
+    });
+    res.status(204).end();
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete column" });
+  }
+});
+
 export default router;
