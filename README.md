@@ -59,6 +59,7 @@ The platform provides Kanban-style workflow management with drag-and-drop task o
 
 ## Architecture Overview
 
+```text
 Client (React + TypeScript)
         ↓
 Node.js + Express API
@@ -68,9 +69,11 @@ Prisma ORM
 SQLite Database
         ↓
 Socket.io Real-Time Sync
+```
 
 ## Folder Structure
 
+```text
 src/
 ├── components/     # Reusable UI components
 ├── pages/          # Workspace and board pages
@@ -80,8 +83,7 @@ src/
 ├── types/          # Shared TypeScript interfaces
 ├── App.tsx         # Root application logic
 └── main.tsx        # Application entry point
-
-## Setup & Installation
+```
 
 ### Prerequisites
 - Node.js v18 or higher
