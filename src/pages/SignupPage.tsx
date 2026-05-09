@@ -15,14 +15,21 @@ export default function SignupPage() {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      console.log("Submitting registration:", { email, name });
       const resp = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name }),
       });
       if (!resp.ok) {
-        const data = await resp.json();
-        throw new Error(data.error || "Signup failed");
+        const text = await resp.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Unexpected server response: ${text.slice(0, 50)}...`);
+        }
+        throw new Error(errorData.error || "Signup failed");
       }
       return resp.json();
     },
@@ -31,12 +38,21 @@ export default function SignupPage() {
       navigate("/");
     },
     onError: (err: Error) => {
+      console.error("Signup mutation error:", err);
       setError(err.message);
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password || !name) {
+      setError("All fields are required");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
     mutation.mutate();
   };
 

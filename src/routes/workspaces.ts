@@ -147,4 +147,47 @@ router.delete("/:workspaceId/boards/:boardId/columns/:columnId", authenticateTok
   }
 });
 
+router.post("/:workspaceId/members", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { email, role } = z.object({
+      email: z.string().email(),
+      role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),
+    }).parse(req.body);
+
+    const { workspaceId } = req.params;
+
+    const userToAdd = await prisma.user.findUnique({ where: { email } });
+    if (!userToAdd) return res.status(404).json({ error: "User not found. They must sign up first." });
+
+    const existingMember = await prisma.workspaceMember.findUnique({
+      where: {
+        userId_workspaceId: {
+          userId: userToAdd.id,
+          workspaceId,
+        }
+      }
+    });
+
+    if (existingMember) return res.status(400).json({ error: "User is already a member" });
+
+    const member = await prisma.workspaceMember.create({
+      data: {
+        workspaceId,
+        userId: userToAdd.id,
+        role,
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true } }
+      }
+    });
+
+    res.status(201).json(member);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.issues[0].message });
+    }
+    res.status(400).json({ error: error.message || "Failed to add member" });
+  }
+});
+
 export default router;

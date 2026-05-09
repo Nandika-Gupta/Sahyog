@@ -18,6 +18,10 @@ export default function BoardPage() {
   const queryClient = useQueryClient();
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedColumnId, setSelectedColumnId] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [isMemberModalOpen, setIsMemberModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   const { data: board, isLoading, error } = useQuery({
     queryKey: ["board", boardId],
@@ -125,6 +129,27 @@ export default function BoardPage() {
     }
   });
 
+  const inviteMemberMutation = useMutation({
+    mutationFn: (email: string) => fetcher(`/workspaces/${board?.workspaceId}/members`, {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["board", boardId] });
+      setIsMemberModalOpen(false);
+      setInviteEmail("");
+      setInviteError(null);
+    },
+    onError: (err: Error) => setInviteError(err.message)
+  });
+
+  const handleInviteMember = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (inviteEmail.trim()) {
+      inviteMemberMutation.mutate(inviteEmail.trim());
+    }
+  };
+
   const deleteTaskMutation = useMutation({
     mutationFn: (taskId: string) => fetcher(`/tasks/tasks/${taskId}`, { method: "DELETE" }),
     onSuccess: () => {
@@ -160,14 +185,14 @@ return (
         </div>
         <div className="flex items-center gap-4">
           <div className="flex -space-x-3">
-              {board.workspace?.members?.slice(0, 3).map((m: any) => (
+              {(board.workspace?.members || []).slice(0, 3).map((m: any) => (
                   <div key={m.userId} className="w-10 h-10 rounded-2xl bg-slate-800 border-2 border-slate-950 flex items-center justify-center overflow-hidden" title={m.user.name}>
                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${m.user.name}`} alt="user" className="w-full h-full object-cover" />
                   </div>
               ))}
-              {board.workspace?.members?.length > 3 && (
+              {(board.workspace?.members || []).length > 3 && (
                 <div className="w-10 h-10 rounded-2xl bg-indigo-600 border-2 border-slate-950 flex items-center justify-center text-xs font-black text-white">
-                    +{board.workspace.members.length - 3}
+                    +{(board.workspace?.members || []).length - 3}
                 </div>
               )}
           </div>
@@ -178,7 +203,10 @@ return (
             <Plus className="w-4 h-4" />
             Add Column
           </button>
-          <button className="h-12 px-6 bg-white text-black font-black rounded-2xl hover:bg-slate-200 transition-all shadow-xl shadow-white/5 active:scale-95 flex items-center gap-2">
+          <button 
+            onClick={() => setIsMemberModalOpen(true)}
+            className="h-12 px-6 bg-white text-black font-black rounded-2xl hover:bg-slate-200 transition-all shadow-xl shadow-white/5 active:scale-95 flex items-center gap-2"
+          >
             <Users className="w-4 h-4" />
             Share
           </button>
@@ -240,15 +268,28 @@ return (
                                 <div className="w-7 h-7 rounded-full bg-slate-800 border border-white/5 flex items-center justify-center text-[9px] font-black text-indigo-400 group-hover:scale-110 transition-transform">
                                     {task.assignee?.name?.[0].toUpperCase() || "?"}
                                 </div>
-                                <button 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    if (confirm("Delete this task?")) deleteTaskMutation.mutate(task.id);
-                                  }}
-                                  className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-all"
-                                >
-                                  <AlertCircle className="w-4 h-4" />
-                                </button>
+                                <div className="flex gap-2">
+                                  <button 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      setEditingTask(task);
+                                      setSelectedColumnId(task.columnId); // Set column ID for edit context
+                                      setIsTaskModalOpen(true);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-indigo-400 transition-all font-bold text-[10px] uppercase tracking-widest"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      if (confirm("Delete this task?")) deleteTaskMutation.mutate(task.id);
+                                    }}
+                                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-red-400 transition-all"
+                                  >
+                                    <AlertCircle className="w-4 h-4" />
+                                  </button>
+                                </div>
                             </div>
                             <h4 className="font-black text-white text-sm mb-2 group-hover:text-indigo-400 transition-colors leading-tight">{task.title}</h4>
                             <p className="text-xs text-slate-500 line-clamp-2 mb-5 leading-relaxed font-medium">
@@ -304,11 +345,21 @@ return (
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-              onClick={() => setIsTaskModalOpen(false)}
+              onClick={() => {
+                setIsTaskModalOpen(false);
+                setEditingTask(null);
+                setSelectedColumnId(null);
+              }}
             />
             <TaskModalContent 
                 columnId={selectedColumnId!} 
-                onClose={() => setIsTaskModalOpen(false)} 
+                task={editingTask}
+                members={board.workspace?.members || []}
+                onClose={() => {
+                  setIsTaskModalOpen(false);
+                  setEditingTask(null);
+                  setSelectedColumnId(null);
+                }} 
                 boardId={boardId!}
             />
           </div>
@@ -366,21 +417,84 @@ return (
           </div>
         )}
       </AnimatePresence>
+
+      <AnimatePresence>
+        {isMemberModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              onClick={() => setIsMemberModalOpen(false)}
+            />
+            <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="relative w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl"
+            >
+                <h2 className="text-2xl font-bold mb-2">Invite Member</h2>
+                <p className="text-slate-400 text-sm mb-6">Add someone to this workspace.</p>
+                <form onSubmit={handleInviteMember} className="space-y-6">
+                    {inviteError && <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold rounded-lg">{inviteError}</div>}
+                    <div>
+                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Email Address</label>
+                        <input
+                            autoFocus
+                            type="email"
+                            value={inviteEmail}
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            className="w-full h-14 bg-slate-950 border border-slate-800 rounded-2xl px-5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-bold placeholder:text-slate-700"
+                            placeholder="colleague@example.com"
+                            required
+                        />
+                    </div>
+                    <div className="flex gap-4">
+                        <button
+                            type="button"
+                            onClick={() => setIsMemberModalOpen(false)}
+                            className="flex-1 h-14 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={!inviteEmail || inviteMemberMutation.isPending}
+                            className="flex-1 h-14 bg-white text-black hover:bg-slate-200 disabled:opacity-50 font-black rounded-xl transition-all shadow-xl shadow-white/5"
+                        >
+                            {inviteMemberMutation.isPending ? "Inviting..." : "Invite"}
+                        </button>
+                    </div>
+                </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function TaskModalContent({ columnId, onClose, boardId }: { columnId: string, onClose: () => void, boardId: string }) {
+function TaskModalContent({ columnId, task, members, onClose, boardId }: { columnId: string, task?: any, members: any[], onClose: () => void, boardId: string }) {
     const queryClient = useQueryClient();
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [priority, setPriority] = useState("MEDIUM");
+    const [title, setTitle] = useState(task?.title || "");
+    const [description, setDescription] = useState(task?.description || "");
+    const [priority, setPriority] = useState(task?.priority || "MEDIUM");
+    const [assignedTo, setAssignedTo] = useState(task?.assignedTo || "");
 
     const mutation = useMutation({
-        mutationFn: (data: any) => fetcher("/tasks/tasks", {
-            method: "POST",
-            body: JSON.stringify({ ...data, columnId }),
-        }),
+        mutationFn: (data: any) => {
+            if (task) {
+                return fetcher(`/tasks/tasks/${task.id}`, {
+                    method: "PATCH",
+                    body: JSON.stringify(data),
+                });
+            }
+            return fetcher("/tasks/tasks", {
+                method: "POST",
+                body: JSON.stringify({ ...data, columnId }),
+            });
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["board", boardId] });
             onClose();
@@ -389,7 +503,7 @@ function TaskModalContent({ columnId, onClose, boardId }: { columnId: string, on
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        mutation.mutate({ title, description, priority });
+        mutation.mutate({ title, description, priority, assignedTo: assignedTo || null });
     };
 
     return (
@@ -399,7 +513,7 @@ function TaskModalContent({ columnId, onClose, boardId }: { columnId: string, on
             exit={{ scale: 0.95, opacity: 0 }}
             className="relative w-full max-w-lg bg-slate-900 border border-slate-800 p-8 rounded-2xl shadow-2xl"
         >
-            <h2 className="text-2xl font-bold mb-6">Create New Task</h2>
+            <h2 className="text-2xl font-bold mb-6">{task ? "Edit Task" : "Create New Task"}</h2>
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">Title</label>
@@ -422,27 +536,44 @@ function TaskModalContent({ columnId, onClose, boardId }: { columnId: string, on
                         placeholder="What needs to be done?"
                     />
                 </div>
-                <div>
-                   <label className="block text-sm font-medium text-slate-300 mb-2">Priority</label>
-                   <div className="flex gap-4">
-                       {["LOW", "MEDIUM", "HIGH"].map(p => (
-                           <button
-                                key={p}
-                                type="button"
-                                onClick={() => setPriority(p)}
-                                className={cn(
-                                    "flex-1 py-2 rounded-lg text-xs font-bold transition-all border",
-                                    priority === p ? 
-                                        (p === "HIGH" ? "bg-red-500/10 border-red-500 text-red-500" :
-                                         p === "MEDIUM" ? "bg-yellow-500/10 border-yellow-500 text-yellow-500" :
-                                         "bg-emerald-500/10 border-emerald-500 text-emerald-500") :
-                                        "bg-slate-800 border-slate-700 text-slate-500"
-                                )}
-                           >
-                               {p}
-                           </button>
-                       ))}
-                   </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Priority</label>
+                        <div className="flex gap-2">
+                            {["LOW", "MEDIUM", "HIGH"].map(p => (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => setPriority(p)}
+                                    className={cn(
+                                        "flex-1 py-2 rounded-lg text-[10px] font-bold transition-all border",
+                                        priority === p ? 
+                                            (p === "HIGH" ? "bg-red-500/10 border-red-500 text-red-500" :
+                                             p === "MEDIUM" ? "bg-yellow-500/10 border-yellow-500 text-yellow-500" :
+                                             "bg-emerald-500/10 border-emerald-500 text-emerald-500") :
+                                            "bg-slate-800 border-slate-700 text-slate-500/60"
+                                    )}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">Assign To</label>
+                        <select 
+                            value={assignedTo}
+                            onChange={(e) => setAssignedTo(e.target.value)}
+                            className="w-full h-11 bg-slate-800 border border-slate-700 rounded-xl px-4 text-xs font-bold text-slate-300 outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="">Unassigned</option>
+                            {members.map(m => (
+                                <option key={m.user.id} value={m.user.id}>
+                                    {m.user.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
                 <div className="flex gap-4 pt-4">
                     <button
@@ -457,7 +588,7 @@ function TaskModalContent({ columnId, onClose, boardId }: { columnId: string, on
                         disabled={!title || mutation.isPending}
                         className="flex-2 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all px-8 shadow-lg shadow-indigo-500/20"
                     >
-                        {mutation.isPending ? "Creating..." : "Create Task"}
+                        {mutation.isPending ? "Saving..." : (task ? "Update Task" : "Create Task")}
                     </button>
                 </div>
             </form>

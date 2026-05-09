@@ -124,6 +124,41 @@ router.patch("/tasks/:id/move", authenticateToken, async (req: AuthRequest, res)
   }
 });
 
+router.patch("/tasks/:id", authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { title, description, priority, dueDate, assignedTo } = z.object({
+      title: z.string().optional(),
+      description: z.string().optional(),
+      priority: z.string().optional(),
+      dueDate: z.string().optional(),
+      assignedTo: z.string().optional().nullable()
+    }).parse(req.body);
+
+    const task = await prisma.task.update({
+      where: { id: req.params.id },
+      data: {
+        title,
+        description,
+        priority,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+        assignedTo,
+      },
+      include: {
+        assignee: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    });
+
+    res.json(task);
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.issues[0].message });
+    }
+    res.status(400).json({ error: error.message || "Failed to update task" });
+  }
+});
+
 router.delete("/tasks/:id", authenticateToken, async (req: AuthRequest, res) => {
   try {
     await prisma.task.delete({

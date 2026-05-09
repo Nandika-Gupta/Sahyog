@@ -20,8 +20,14 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       if (!resp.ok) {
-        const data = await resp.json();
-        throw new Error(data.error || "Login failed");
+        const text = await resp.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(text);
+        } catch (e) {
+          throw new Error(`Unexpected server response: ${text.slice(0, 50)}...`);
+        }
+        throw new Error(errorData.error || "Login failed");
       }
       return resp.json();
     },
@@ -36,6 +42,10 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      setError("Email and password are required");
+      return;
+    }
     mutation.mutate();
   };
 

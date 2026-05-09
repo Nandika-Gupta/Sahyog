@@ -22,21 +22,25 @@ const loginSchema = z.object({
 
 router.post("/register", async (req, res) => {
   try {
+    console.log("Registration attempt:", req.body);
     const { email, password, name } = registerSchema.parse(req.body);
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     if (existingUser) {
+      console.log("User already exists:", email);
       return res.status(400).json({ error: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
       data: {
-        email,
+        email: email.toLowerCase().trim(),
         password: hashedPassword,
-        name,
+        name: name.trim(),
       },
     });
+
+    console.log("User created successfully:", user.id);
 
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
       expiresIn: "24h",
@@ -44,6 +48,7 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ user: { id: user.id, email: user.email, name: user.name }, token });
   } catch (error: any) {
+    console.error("Registration error:", error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.issues[0].message });
     }
@@ -53,15 +58,20 @@ router.post("/register", async (req, res) => {
 
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    console.log("Login attempt for email:", req.body.email);
+    const data = loginSchema.parse(req.body);
+    const email = data.email.toLowerCase().trim();
+    const password = data.password;
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      console.log("User not found:", email);
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+      console.log("Invalid password for user:", email);
       return res.status(400).json({ error: "Invalid credentials" });
     }
 
@@ -69,8 +79,10 @@ router.post("/login", async (req, res) => {
       expiresIn: "24h",
     });
 
+    console.log("Login successful for user:", email);
     res.json({ user: { id: user.id, email: user.email, name: user.name }, token });
   } catch (error: any) {
+    console.error("Login error:", error);
     if (error instanceof z.ZodError) {
       return res.status(400).json({ error: error.issues[0].message });
     }
